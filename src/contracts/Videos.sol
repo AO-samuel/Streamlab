@@ -38,11 +38,30 @@ contract celotube{
         uint timestamp;
     }
     
+     // representing 1 cusd
+    uint256 internal ERC20_OFFSET = 1000000000000000000;
+    
     uint internal videoLength = 0;
     uint internal tipPrice = 2;
+
     
     mapping (uint => Video) internal videos;
     address internal cUsdTokenAddress = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
+    address internal _owner;
+    // set owner when contract is deployed
+    constructor(){
+        _owner = msg.sender;
+    }
+    
+    modifier onlyOwner() {
+        require(msg.sender == _owner);
+        _;
+    }
+    
+    function changeTipPrice(uint newprice) onlyOwner public {
+        tipPrice = newprice;
+    }
+    
     
     function addVideo(
         string memory _videoLink,
@@ -61,7 +80,7 @@ contract celotube{
             block.timestamp
         );
     }
-    
+
     function getVideos(uint index)public view returns(
         address payable,
         string memory,
@@ -88,7 +107,7 @@ contract celotube{
           IERC20Token(cUsdTokenAddress).transferFrom(
             msg.sender,
             address(this),
-            tipPrice
+            tipPrice * ERC20_OFFSET
           ),    
           "This transaction could not be performed"
         );
