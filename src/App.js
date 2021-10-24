@@ -11,6 +11,8 @@ import Upload from "./Upload";
 import videosABI from "./contracts/videos.abi.json";
 import ierc20 from "./contracts/ierc.abi.json";
 
+import NotificationSystem from "react-notification-system";
+
 const ERC20_DECIMALS = 18;
 
 const contractAddress = "0x76d0709bF5EAFAe657E915c71B0B2F493E94508f";
@@ -21,11 +23,13 @@ function App() {
   const [address, setAddress] = useState(null);
   const [kit, setKit] = useState(null);
   const [cUSDBalance, setcUSDBalance] = useState(0);
+  const notificationSystem = React.createRef();
 
   const [videos, setVideos] = useState([]);
 
   // connect to wallet
   const connectCeloWallet = async () => {
+    const notification = notificationSystem.current;
     if (window.celo) {
       try {
         await window.celo.enable();
@@ -41,6 +45,10 @@ function App() {
         await setKit(kit);
       } catch (error) {
         console.log(error);
+        notification.addNotification({
+          message: "Error Occurred",
+          level: "error",
+        });
       }
     } else {
       console.log("No contract or kit");
@@ -53,6 +61,7 @@ function App() {
 
   // get the cUSD balance
   const getcUSDBalance = useCallback(async () => {
+    const notification = notificationSystem.current;
     try {
       const balance = await kit.getTotalBalance(address);
       const USDBalance = balance.cUSD.shiftedBy(-ERC20_DECIMALS).toFixed(2);
@@ -61,10 +70,16 @@ function App() {
       await setcUSDBalance(USDBalance);
     } catch (error) {
       console.log(error);
+      notification.addNotification({
+        message: "Error Getting Balance",
+        level: "error",
+      });
     }
   }, [address, kit]);
   const getVideos = useCallback(async () => {
-    const videoLength = await contract.methods.getVideosLength().call();
+    const notification = notificationSystem.current;
+    try {
+      const videoLength = await contract.methods.getVideosLength().call();
     const _videosMain = [];
 
     for (let index = 0; index < videoLength; index++) {
@@ -92,7 +107,14 @@ function App() {
 
     const videos = await Promise.all(_videosMain);
     setVideos(videos);
-  }, [contract]);
+
+    } catch (error) {
+      notification.addNotification({
+        message: "Error Occurred while searching for videos",
+        level: "error",
+      });
+    }
+      }, [contract]);
   useEffect(() => {
     if (kit && address) {
       getcUSDBalance();
@@ -109,6 +131,7 @@ function App() {
   }, [contract, getVideos]);
 
   const upvoteClick = async (index) => {
+    const notification = notificationSystem.current;
     const cUSDContract = new kit.web3.eth.Contract(ierc20, cUSDContractAddress);
     const tipPrice = new BigNumber(1).shiftedBy(ERC20_DECIMALS).toString();
     try {
@@ -119,25 +142,40 @@ function App() {
       getVideos();
     } catch (error) {
       console.log(error);
+      notification.addNotification({
+        message: "Something went wrong",
+        level: "error",
+      });
     }
   };
 
   const downvoteClick = async(index)=>{
-    console.log("this")
+    const notification = notificationSystem.current;
+
     try {
       await contract.methods.downvoteVideo(index).send({from: address});
       getVideos();
     } catch (error) {
       console.log(error); 
+      notification.addNotification({
+        message: "Could not verify loan",
+        level: "error",
+      });
     }
   }
 
   const addVideo = async (title, link, description)=>{
+    const notification = notificationSystem.current;
+
     try {
       await contract.methods.addVideo(link, title, description, 0, 0).send({from: address});
       getVideos();
     } catch (error) {
       console.log(error);
+      notification.addNotification({
+        message: "Could not verify loan",
+        level: "error",
+      });
     }
   }
 

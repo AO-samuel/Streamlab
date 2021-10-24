@@ -97,6 +97,14 @@ contract celotube{
     }
     
     function downvoteVideo(uint index)public{
+        require(
+          IERC20Token(cUsdTokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            tipPrice
+          ),    
+          "This transaction could not be performed"
+        );
         videos[index].downvote++;
     }
     
